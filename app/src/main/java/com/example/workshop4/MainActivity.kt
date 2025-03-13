@@ -17,6 +17,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,9 +27,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.lifecycleScope
 import com.example.workshop4.ui.theme.Workshop4Theme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
@@ -36,47 +39,92 @@ class MainActivity : ComponentActivity() {
         private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("settings")
     }
 
-    fun<T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
+    fun <T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
         return@runBlocking dataStore.data.map {
             it[key]
         }.first()
     }
 
-    fun<T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
+    fun <T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
         dataStore.edit {
             it[key] = value
         }
     }
 
+    fun <T> subscribePreference(key: Preferences.Key<T>, callback: (T?) -> Unit) {
+        lifecycleScope.launch {
+            dataStore.data.map {
+                it[key]
+            }.collect {
+                callback(it)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = getSharedPreferences("mysettings", MODE_PRIVATE)
-        var message by mutableStateOf("")
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Workshop4Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Row(
-                        modifier = Modifier.padding(innerPadding),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextField(message,
-                            onValueChange = {
-                                message = it
-                            })
-                        Spacer(modifier = Modifier.weight(1.0f))
-                        Column {
-                            Button(onClick = {
-//                                message = preferences.getString("message", "") ?: ""
-                                message = loadPreference(stringPreferencesKey("message")) ?: ""
-                            }) {
-                                Text("Load")
+                    Column(modifier = Modifier.padding(innerPadding)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            var message by remember { mutableStateOf("") }
+                            TextField(message,
+                                onValueChange = {
+                                    message = it
+                                })
+                            Spacer(modifier = Modifier.weight(1.0f))
+                            Column {
+                                Button(onClick = {
+                                    message = preferences.getString("message", "") ?: ""
+                                }) {
+                                    Text("Load")
+                                }
+                                Button(onClick = {
+                                    preferences.edit().putString("message", message).apply()
+                                }) {
+                                    Text("Save")
+                                }
                             }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            var message by remember { mutableStateOf("") }
+                            TextField(message,
+                                onValueChange = {
+                                    message = it
+                                })
+                            Spacer(modifier = Modifier.weight(1.0f))
+                            Column {
+                                Button(onClick = {
+                                    message = loadPreference(stringPreferencesKey("message")) ?: ""
+                                }) {
+                                    Text("Load")
+                                }
+                                Button(onClick = {
+                                    savePreference(stringPreferencesKey("message"), message)
+                                }) {
+                                    Text("Save")
+                                }
+                            }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            var message by remember { mutableStateOf("") }
+                            TextField(message, onValueChange = {})
+                            Spacer(modifier = Modifier.weight(1.0f))
                             Button(onClick = {
-//                                preferences.edit().putString("message", message).apply()
-                                savePreference(stringPreferencesKey("message"), message)
+                                subscribePreference(stringPreferencesKey("message")) {
+                                    message = it.toString()
+                                }
                             }) {
-                                Text("Save")
+                                Text("Subscribe")
                             }
                         }
                     }
