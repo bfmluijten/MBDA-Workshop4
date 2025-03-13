@@ -21,11 +21,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.workshop4.ui.theme.Workshop4Theme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-import java.util.prefs.Preferences
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("settings")
+    }
+
+    fun<T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
+        return@runBlocking dataStore.data.map {
+            it[key]
+        }.first()
+    }
+
+    fun<T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
+        dataStore.edit {
+            it[key] = value
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = getSharedPreferences("mysettings", MODE_PRIVATE)
         var message by mutableStateOf("")
@@ -45,12 +67,14 @@ class MainActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.weight(1.0f))
                         Column {
                             Button(onClick = {
-                                message = preferences.getString("message", "") ?: ""
+//                                message = preferences.getString("message", "") ?: ""
+                                message = loadPreference(stringPreferencesKey("message")) ?: ""
                             }) {
                                 Text("Load")
                             }
                             Button(onClick = {
-                                preferences.edit().putString("message", message).apply()
+//                                preferences.edit().putString("message", message).apply()
+                                savePreference(stringPreferencesKey("message"), message)
                             }) {
                                 Text("Save")
                             }
@@ -59,11 +83,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    fun saveBooleanPreference(key: Preferences.Key<Boolean>, value: Boolean) = runBlocking {
-        val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-        return@runBlocking dataStore.edit { it[key] = value }
     }
 }
 
