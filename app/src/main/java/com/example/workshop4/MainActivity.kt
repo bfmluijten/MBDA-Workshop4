@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -37,33 +36,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
+val Context.dataStore by preferencesDataStore("settings")
+
 class MainActivity : ComponentActivity() {
-    companion object {
-        private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("settings")
-    }
-
-    fun <T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
-        return@runBlocking dataStore.data.map {
-            it[key]
-        }.first()
-    }
-
-    fun <T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
-        dataStore.edit {
-            it[key] = value
-        }
-    }
-
-    fun <T> subscribePreference(key: Preferences.Key<T>, callback: (T?) -> Unit) {
-        lifecycleScope.launch {
-            dataStore.data.map {
-                it[key]
-            }.collect {
-                callback(it)
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = getSharedPreferences("mysettings", MODE_PRIVATE)
         super.onCreate(savedInstanceState)
@@ -71,7 +46,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             Workshop4Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(modifier = Modifier.padding(innerPadding).padding(horizontal = 10.dp)) {
+                    Column(modifier = Modifier
+                        .padding(innerPadding)
+                        .padding(horizontal = 10.dp)) {
                         Text("Shared Preferences", fontSize = 30.sp)
                         Row(
                             verticalAlignment = Alignment.CenterVertically
@@ -120,7 +97,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         Spacer(modifier = Modifier.height(100.dp))
-                        Text("Subscribe DataStore", fontSize = 30.sp)
+                        Text("Listen Preference", fontSize = 30.sp)
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -128,7 +105,7 @@ class MainActivity : ComponentActivity() {
                             TextField(message, onValueChange = {})
                             Spacer(modifier = Modifier.weight(1.0f))
                             Button(onClick = {
-                                subscribePreference(stringPreferencesKey("message")) {
+                                listenPreference(stringPreferencesKey("message")) {
                                     message = it.toString()
                                 }
                             }) {
@@ -137,6 +114,28 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    fun <T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
+        return@runBlocking dataStore.data.map {
+            it[key]
+        }.first()
+    }
+
+    fun <T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
+        dataStore.edit {
+            it[key] = value
+        }
+    }
+
+    fun <T> listenPreference(key: Preferences.Key<T>, listener: (T?) -> Unit) {
+        lifecycleScope.launch {
+            dataStore.data.map {
+                it[key]
+            }.collect {
+                listener(it)
             }
         }
     }
