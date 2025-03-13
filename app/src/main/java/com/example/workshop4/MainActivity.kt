@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -22,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -68,7 +71,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             Workshop4Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(modifier = Modifier.padding(innerPadding)) {
+                    Column(modifier = Modifier.padding(innerPadding).padding(horizontal = 10.dp)) {
+                        Text("Shared Preferences", fontSize = 30.sp)
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -91,6 +95,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                        Spacer(modifier = Modifier.height(100.dp))
+                        Text("Preferences DataStore", fontSize = 30.sp)
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -113,6 +119,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                        Spacer(modifier = Modifier.height(100.dp))
+                        Text("Subscribe DataStore", fontSize = 30.sp)
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -124,7 +132,7 @@ class MainActivity : ComponentActivity() {
                                     message = it.toString()
                                 }
                             }) {
-                                Text("Subscribe")
+                                Text("Listen")
                             }
                         }
                     }
