@@ -118,19 +118,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun <T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
+    private fun <T> loadPreference(key: Preferences.Key<T>): T? = runBlocking {
         return@runBlocking dataStore.data.map {
             it[key]
         }.first()
     }
 
-    fun <T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
+    private fun <T> savePreference(key: Preferences.Key<T>, value: T) = runBlocking {
         dataStore.edit {
             it[key] = value
         }
     }
 
-    fun <T> listenPreference(key: Preferences.Key<T>, listener: (T?) -> Unit) {
+    private fun <T> listenPreference(key: Preferences.Key<T>, listener: (T?) -> Unit) {
         lifecycleScope.launch {
             dataStore.data.map {
                 it[key]
