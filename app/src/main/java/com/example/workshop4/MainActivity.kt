@@ -155,12 +155,16 @@ class MainActivity : ComponentActivity() {
                                 })
                         }
                         Button(onClick = {
-                            if (ContextCompat.checkSelfPermission(this@MainActivity, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED) {
-                                Toast.makeText(this@MainActivity, "Permission already granted", Toast.LENGTH_SHORT).show()
-                            } else {
-                                if (ActivityCompat.shouldShowRequestPermissionRationale(this@MainActivity, ACCESS_COARSE_LOCATION)) {
+                            when {
+                                ContextCompat.checkSelfPermission(this@MainActivity, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED -> {
+                                    Toast.makeText(this@MainActivity, "Permission already granted", Toast.LENGTH_SHORT).show()
+                                }
+
+                                ActivityCompat.shouldShowRequestPermissionRationale(this@MainActivity, ACCESS_COARSE_LOCATION) -> {
                                     showPermissionDialog = true
-                                } else {
+                                }
+
+                                else -> {
                                     requestPermissionLauncher.launch(ACCESS_COARSE_LOCATION)
                                 }
                             }
