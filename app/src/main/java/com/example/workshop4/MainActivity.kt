@@ -3,18 +3,21 @@ package com.example.workshop4
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.content.Context
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.content.res.Configuration
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
@@ -31,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,130 +54,180 @@ import kotlinx.coroutines.runBlocking
 val Context.dataStore by preferencesDataStore("settings")
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+    val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
                 Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
             }
         }
-        val preferences = getSharedPreferences("mysettings", MODE_PRIVATE)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Workshop4Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(
-                        modifier = Modifier
-                            .padding(innerPadding)
-                            .padding(horizontal = 10.dp)
-                    ) {
-                        Text("Shared Preferences", fontSize = 30.sp)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
+                    val configuration = LocalConfiguration.current
+                    if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                        Column(
+                            modifier = Modifier
+                                .padding(innerPadding)
+                                .padding(horizontal = 10.dp)
+                                .fillMaxHeight(),
+                            verticalArrangement = Arrangement.SpaceEvenly,
+                            horizontalAlignment = Alignment.Start
                         ) {
-                            var message by remember { mutableStateOf("") }
-                            TextField(
-                                message,
-                                onValueChange = {
-                                    message = it
-                                })
-                            Spacer(modifier = Modifier.weight(1.0f))
-                            Column {
-                                Button(onClick = {
-                                    message = preferences.getString("message", "") ?: ""
-                                }) {
-                                    Text("Load")
-                                }
-                                Button(onClick = {
-                                    preferences.edit().putString("message", message).apply()
-                                }) {
-                                    Text("Save")
-                                }
-                            }
+                            SharedPreference()
+                            DatastorePreference()
+                            ListenPreference()
+                            RequestPermission()
                         }
-                        Spacer(modifier = Modifier.height(100.dp))
-                        Text("Preferences DataStore", fontSize = 30.sp)
+                    } else {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .padding(innerPadding)
+                                .padding(horizontal = 10.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.Top
                         ) {
-                            var message by remember { mutableStateOf("") }
-                            TextField(
-                                message,
-                                onValueChange = {
-                                    message = it
-                                })
-                            Spacer(modifier = Modifier.weight(1.0f))
-                            Column {
-                                Button(onClick = {
-                                    message = loadPreference(stringPreferencesKey("message")) ?: ""
-                                }) {
-                                    Text("Load")
-                                }
-                                Button(onClick = {
-                                    savePreference(stringPreferencesKey("message"), message)
-                                }) {
-                                    Text("Save")
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(100.dp))
-                        Text("Listen Preference", fontSize = 30.sp)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            var message by remember { mutableStateOf("") }
-                            TextField(message, onValueChange = {})
-                            Spacer(modifier = Modifier.weight(1.0f))
-                            Button(onClick = {
-                                listenPreference(stringPreferencesKey("message")) {
-                                    message = it.toString()
-                                }
-                            }) {
-                                Text("Listen")
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(100.dp))
-                        var showPermissionDialog by remember { mutableStateOf(false) }
-                        if (showPermissionDialog) {
-                            AlertDialog(
-                                icon = { Icon(Icons.Default.Info, contentDescription = "") },
-                                title = { Text(text = "Please give permission") },
-                                text = { Text("We need your permission to access your location") },
-                                onDismissRequest = { showPermissionDialog = false },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        showPermissionDialog = false
-                                        requestPermissionLauncher.launch(ACCESS_COARSE_LOCATION)
-                                    }) { Text("Maybe") }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = {
-                                        showPermissionDialog = false
-                                    }) { Text("Never") }
-                                })
-                        }
-                        Button(onClick = {
-                            when {
-                                ContextCompat.checkSelfPermission(this@MainActivity, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED -> {
-                                    Toast.makeText(this@MainActivity, "Permission already granted", Toast.LENGTH_SHORT).show()
-                                }
-
-                                ActivityCompat.shouldShowRequestPermissionRationale(this@MainActivity, ACCESS_COARSE_LOCATION) -> {
-                                    showPermissionDialog = true
-                                }
-
-                                else -> {
-                                    requestPermissionLauncher.launch(ACCESS_COARSE_LOCATION)
-                                }
-                            }
-                        }) {
-                            Text("Permission")
+                            SharedPreference()
+                            DatastorePreference()
+                            ListenPreference()
+                            RequestPermission()
                         }
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun SharedPreference() {
+        val preferences = getSharedPreferences("mysettings", MODE_PRIVATE)
+        Column  {
+            var message by remember { mutableStateOf("") }
+            Text("Shared", fontSize = 30.sp)
+            Text("Preferences", fontSize = 30.sp)
+            TextField(
+                message,
+                modifier = Modifier.width(200.dp),
+                onValueChange = {
+                    message = it
+                })
+            Row {
+                Button(onClick = {
+                    message = preferences.getString("message", "") ?: ""
+                }) {
+                    Text("Load")
+                }
+                Button(onClick = {
+                    preferences.edit().putString("message", message).apply()
+                }) {
+                    Text("Save")
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun DatastorePreference() {
+        Column {
+            var message by remember { mutableStateOf("") }
+            Text("Preference", fontSize = 30.sp)
+            Text("DataStore", fontSize = 30.sp)
+            TextField(
+                message,
+                modifier = Modifier.width(200.dp),
+                onValueChange = {
+                    message = it
+                })
+            Row {
+                Button(onClick = {
+                    message =
+                        loadPreference(stringPreferencesKey("message")) ?: ""
+                }) {
+                    Text("Load")
+                }
+                Button(onClick = {
+                    savePreference(stringPreferencesKey("message"), message)
+                }) {
+                    Text("Save")
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun ListenPreference() {
+        Column {
+            Text("Preference", fontSize = 30.sp)
+            Text("Listener", fontSize = 30.sp)
+            var message by remember { mutableStateOf("") }
+            TextField(message,
+                modifier = Modifier.width(200.dp),
+                onValueChange = {
+
+                })
+            Button(onClick = {
+                listenPreference(stringPreferencesKey("message")) {
+                    message = it.toString()
+                }
+            }) {
+                Text("Listen")
+            }
+        }
+    }
+
+    @Composable
+    private fun RequestPermission() {
+        var showPermissionDialog by remember { mutableStateOf(false) }
+        if (showPermissionDialog) {
+            AlertDialog(
+                icon = { Icon(Icons.Default.Info, contentDescription = "") },
+                title = { Text(text = "Please give permission") },
+                text = { Text("We need your permission to access your location") },
+                onDismissRequest = { showPermissionDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showPermissionDialog = false
+                        requestPermissionLauncher.launch(ACCESS_COARSE_LOCATION)
+                    }) { Text("Maybe") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showPermissionDialog = false
+                    }) { Text("Never") }
+                })
+        }
+        Button(onClick = {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this@MainActivity,
+                    ACCESS_COARSE_LOCATION
+                ) == PERMISSION_GRANTED -> {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Permission already granted",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    this@MainActivity,
+                    ACCESS_COARSE_LOCATION
+                ) -> {
+                    showPermissionDialog = true
+                }
+
+                else -> {
+                    requestPermissionLauncher.launch(ACCESS_COARSE_LOCATION)
+                }
+            }
+        }) {
+            Text("Location")
         }
     }
 
