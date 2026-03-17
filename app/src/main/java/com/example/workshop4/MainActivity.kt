@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.content.res.Configuration
+import android.graphics.BitmapFactory
 import android.location.LocationManager
 import android.os.Bundle
 import android.widget.Toast
@@ -12,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -36,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -56,6 +60,8 @@ import kotlinx.coroutines.runBlocking
 val Context.dataStore by preferencesDataStore("settings")
 
 class MainActivity : ComponentActivity() {
+    private var selectedBitmap by mutableStateOf<android.graphics.Bitmap?>(null)
+
     val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -109,24 +115,42 @@ class MainActivity : ComponentActivity() {
     }
 
     val afr = registerForActivityResult(
-    ActivityResultContracts.StartActivityForResult()) { result ->
+        ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val uri = result.data?.data
-            val inputStream = uri?.let { contentResolver.openInputStream(it) }
-            val text = inputStream?.readBytes()?.toString(Charsets.UTF_8)
-            inputStream?.close()
+            val bitmap = uri?.let { selectedUri ->
+                contentResolver.openInputStream(selectedUri)?.use { inputStream ->
+                    BitmapFactory.decodeStream(inputStream)
+                }
+            }
+
+            selectedBitmap = bitmap
+
+            if (bitmap == null) {
+                Toast.makeText(this, "Kon geen bitmap maken van de gekozen inputStream", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     @Composable
     fun StorageAccessFramework() {
-        Button(onClick = {
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
-            intent.addCategory(Intent.CATEGORY_OPENABLE)
-            intent.setType("*/*")
-            afr.launch(intent)
-        }) {
-            Text("Storage Access Framework")
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = {
+                val intent = Intent(Intent.ACTION_GET_CONTENT)
+                intent.addCategory(Intent.CATEGORY_OPENABLE)
+                intent.setType("image/*")
+                afr.launch(intent)
+            }) {
+                Text("Storage Access Framework")
+            }
+
+            selectedBitmap?.let { bitmap ->
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Geselecteerde bitmap",
+                    modifier = Modifier.size(80.dp)
+                )
+            }
         }
     }
 
