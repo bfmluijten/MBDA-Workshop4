@@ -2,6 +2,7 @@ package com.example.workshop4
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.content.res.Configuration
 import android.os.Bundle
@@ -83,6 +84,7 @@ class MainActivity : ComponentActivity() {
                             DatastorePreference()
                             ListenPreference()
                             RequestPermission()
+                            StorageAccessFramework()
                         }
                     } else {
                         Row(
@@ -97,10 +99,33 @@ class MainActivity : ComponentActivity() {
                             DatastorePreference()
                             ListenPreference()
                             RequestPermission()
+                            StorageAccessFramework()
                         }
                     }
                 }
             }
+        }
+    }
+
+    val afr = registerForActivityResult(
+    ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val uri = result.data?.data
+            val inputStream = uri?.let { contentResolver.openInputStream(it) }
+            val text = inputStream?.readBytes()?.toString(Charsets.UTF_8)
+            inputStream?.close()
+        }
+    }
+
+    @Composable
+    fun StorageAccessFramework() {
+        Button(onClick = {
+            val intent = Intent(Intent.ACTION_GET_CONTENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("*/*")
+            afr.launch(intent)
+        }) {
+            Text("Storage Access Framework")
         }
     }
 
