@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.content.res.Configuration
+import android.location.LocationManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -58,7 +59,7 @@ class MainActivity : ComponentActivity() {
     val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
-                Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show()
+                fetchLatestCoarseLocation()
             } else {
                 Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
             }
@@ -233,11 +234,7 @@ class MainActivity : ComponentActivity() {
                     this@MainActivity,
                     ACCESS_COARSE_LOCATION
                 ) == PERMISSION_GRANTED -> {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Permission already granted",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    fetchLatestCoarseLocation()
                 }
 
                 ActivityCompat.shouldShowRequestPermissionRationale(
@@ -253,6 +250,23 @@ class MainActivity : ComponentActivity() {
             }
         }) {
             Text("Location")
+        }
+    }
+
+    @android.annotation.SuppressLint("MissingPermission")
+    private fun fetchLatestCoarseLocation() {
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        val location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            ?: locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+
+        if (location != null) {
+            Toast.makeText(
+                this,
+                "Lat: ${location.latitude}, Lng: ${location.longitude}",
+                Toast.LENGTH_LONG
+            ).show()
+        } else {
+            Toast.makeText(this, "No recent location available", Toast.LENGTH_SHORT).show()
         }
     }
 
